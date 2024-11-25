@@ -8,28 +8,31 @@ import json
 
 load_dotenv()
 client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+now_dir = os.getcwd()
 
 print()
 print()
 print()
 print()
 
-if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-4o-mini"
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-if "active" not in st.session_state:
-    st.session_state["active"] = ""
-if "side_data" not in st.session_state:
-    st.session_state["side_data"] = []
 
 st.title("Chat bot test")
 
 placeholder = st.empty()
 
-now_dir = os.getcwd()
 def init():
-    # 대화내역 불러오기 위한 데이터
+    if "openai_model" not in st.session_state:
+        st.session_state["openai_model"] = "gpt-4o-mini"
+    if "messages" not in st.session_state:  # 입력값에 대한 메시지
+        st.session_state["messages"] = []
+    if "active" not in st.session_state:    # 선택한 대화방
+        st.session_state["active"] = ""
+    if "side_data" not in st.session_state: # 사이드바에 표시하기위한 데이터
+        st.session_state["side_data"] = []
+    if "button_clicked" not in st.session_state:    # 동적 추가 버튼 클릭 여부 
+        st.session_state["button_clicked"] = False
+
+    # 대화내역 불러오기 위한 데이터 초기화
     if os.path.isdir(now_dir + "\History"):
         prompt_file = os.listdir(now_dir + "\History")
 
@@ -41,50 +44,41 @@ def init():
                     json_data = json.load(f)
                     side_title = json_data[0]["content"][0:20]
                     st.session_state.side_data.append({side_title:file})
-                    
-def split_long_text(text, line_length=80):
-    print(text)
-    return [text[i:i+line_length] for i in range(0, len(text), line_length)]
+init()
+print(st.session_state)
 
-def render_sidebar():
-    with st.sidebar:
-        st.title('Chat Rooms')
-        # sidebar_placeholder = st.sidebar.empty() # 사이드바에 다른 요소 추가시키기 위함        
-        # print(len(st.session_state.side_data))
-        print(st.session_state)
-        for i, room in enumerate(st.session_state.side_data):
-            print("room",room.items())
-            for room_name, file_name in room.items():
-                button_key = f"{room_name}_{file_name}{i}"  
-                if st.button(room_name, key=button_key):  # 각 대화방 이름을 버튼으로 출력
-                    print("btn", button_key)
-                    # placeholder.empty()
-                    st.session_state["messages"] = []
-                    st.session_state["active"] = now_dir + "/History/" + file_name
-                    with placeholder.container():
-                        with open(os.path.join(now_dir, "History", file_name), 'r', encoding='UTF8') as f:
-                            json_data = json.load(f)
-                            for message in json_data:
-                                # with st.chat_message(message["role"]):
-                                #     st.write(message["content"])
-                                st.session_state.messages.append({"role":message["role"], "content":message["content"]})
-                                    
+# 사이드바
+with st.sidebar:
+    st.title('Chat Rooms')
+    sidebar_placeholder = st.sidebar.empty() # 사이드바에 다른 요소 추가시키기 위함        
+    for i, room in enumerate(st.session_state.side_data):
+        for room_name, file_name in room.items():
+            button_key = f"{room_name}_{file_name}{i}"  
+            # 선택된 버튼 다른 타입으로 표시 (보류)
+            type = "primary" if st.session_state["active"] == now_dir + "/History/" + file_name else "secondary"
 
-def click_event(data):
-    print(data)
+            if st.button(room_name, key=button_key, type=type):  # 각 대화방 이름을 버튼으로 출력
+                st.session_state["messages"] = []
+                st.session_state["active"] = now_dir + "/History/" + file_name
+                with placeholder.container():
+                    with open(os.path.join(now_dir, "History", file_name), 'r', encoding='UTF8') as f:
+                        json_data = json.load(f)
+                        for message in json_data:
+                            st.session_state.messages.append({"role":message["role"], "content":message["content"]})
+                 
+# 채팅 내역 session_state 저장
 def session_save(data):
     now_dir = os.getcwd()
     history_dir = now_dir + "/History/"
+    # History 폴더에 파일이 있는지 확인
     if os.path.isdir(history_dir):
-        # prompt 폴더에 파일이 있는지 확인
         prompt_file = os.listdir(history_dir)
         file_cnt = len(prompt_file)+1
 
         file_name = "history" + str(file_cnt) + ".json"
 
         active = st.session_state.active
-        print(active == "", active)
-        # 첫 질문 - session_state 값 없음 - dump로 생성
+        # 첫 질문 - active 값 없음 - dump로 생성
         if active == "":
             print("file", history_dir + file_name)
             with open(history_dir + file_name, 'w', encoding='UTF8') as f:
@@ -94,23 +88,13 @@ def session_save(data):
                 st.session_state["active"] = f.name
                 st.session_state.side_data.insert(0,{room_name:file_name})
 
-                # st.sidebar.rerun()
-                # with sidebar_placeholder.container():
-                #     button_key = f"{room_name}_{file_name}{len(st.session_state.side_data)}"  
-                    
-                #     st.button(room_name, key=button_key, on_click=click_event(button_key))
-
-                    # if st.button(room_name, key=button_key):  # 각 대화방 이름을 버튼으로 출력
-                    #     print("new")
-                    #     # st.session_state["messages"] = [] # 중복메시지 출력되는 부분 해결을 위함
-                    #     st.session_state["active"] = file_name
-                    #     placeholder.empty()
-                    #     with placeholder.container():
-                    #         with open(os.path.join(now_dir, "History", file_name), 'r', encoding='UTF8') as f:
-                    #             json_data = json.load(f)
-                    #             for message in json_data:
-                    #                 with st.chat_message(message["role"]):
-                    #                     st.write(message["content"])
+                with sidebar_placeholder.container():
+                    button_key = f"{room_name}_{file_name}{len(st.session_state.side_data)}"  
+                    # 동적으로 버튼 추가시 - 클릭이벤트 비정상 작동 - (보류)
+                    if st.button(room_name, key=button_key):  # 각 대화방 이름을 버튼으로 출력
+                        st.session_state["button_clicked"] = True
+                        # st.session_state["messages"] = []
+                        st.session_state["active"] = now_dir + "/History/" + file_name
         # 두번째는 - session_state 값 있음 - update
         elif os.path.isfile(active):
             print("file", active)
@@ -127,24 +111,17 @@ def session_save(data):
             with open(active, 'w', encoding='UTF8') as f:
                 json.dump(json_data, f)
 
-# print(st.session_state)
-
-
-
-
-# 사이드바
-
-# if st.session_state.active:
-    # st.write(f"선택된 대화방: {st.session_state.active}")
-    # 여기에서 선택된 파일의 내용을 로드하여 화면에 표시합니다.
-# else:
-    # st.write("대화방을 선택하세요.")
+if st.session_state["button_clicked"]:
+    print("new")
+    placeholder.empty()
+    with placeholder.container():
+        with open(os.path.join(now_dir, "History", file_name), 'r', encoding='UTF8') as f:
+            json_data = json.load(f)
+            for message in json_data:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
     
 # 메세지 추가시 화면에 표시
-
-init()
-render_sidebar()
-
 for message in st.session_state["messages"]:
     print("mesg", message)
     with st.chat_message(message["role"]):

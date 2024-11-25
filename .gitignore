@@ -1,4 +1,5 @@
 .env
-/History/*
+History/*
 test.py
 *.json
+History/history1.json
