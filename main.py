@@ -2,7 +2,6 @@ import streamlit as st
 import speech_recognition as sr
 from streamlit_chat import message
 from openai import OpenAI
-from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import pyttsx3
 import os
@@ -17,6 +16,10 @@ st.title("Chat bot test")
 placeholder = st.empty()
 
 def init():
+    # 경로가 없으면 생성
+    if not os.path.exists("History"):
+        os.makedirs("History")
+
     if "openai_model" not in st.session_state:
         st.session_state["openai_model"] = "gpt-4o-mini"
     if "messages" not in st.session_state:  # 입력값에 대한 메시지
@@ -29,8 +32,8 @@ def init():
         st.session_state["transcript"] = ""
 
     # 대화내역 불러오기 위한 데이터 초기화
-    if os.path.isdir(now_dir + "\History"):
-        prompt_file = os.listdir(now_dir + "\History")
+    if os.path.isdir(now_dir + "/History"):
+        prompt_file = os.listdir(now_dir + "/History")
 
         prompt_file = sorted(prompt_file, key=lambda x: int(x.split('.')[0].replace("history", "")), reverse=True)
 
@@ -162,7 +165,7 @@ def chatbot(prompt, isVoice):
 if st.button("마이크"):             # 마이크 입력시 보이스 재생
     user_input = get_audio_input()
     if user_input is not None:
-        text_to_speech(user_input)
+        # text_to_speech(user_input)
         chatbot(user_input, True)
 
 if prompt := st.chat_input("Say something"):        # 채팅 입력시

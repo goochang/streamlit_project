@@ -1,8 +1,5 @@
 .env
 History/*
-test.py
 *.json
-History/history1.json
 __pycache__/stt_handler.cpython-311.pyc
 modules/__pycache__/stt_handler.cpython-311.pyc
-History/history1.json
