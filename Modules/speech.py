@@ -1,7 +1,6 @@
 import streamlit as st
 from streamlit_chat import message
 from openai import OpenAI
-from st_audiorec import st_audiorec
 from dotenv import load_dotenv
 import os
 import json
@@ -147,7 +146,6 @@ def chatbot(prompt, isVoice):
 if st.button("마이크"):             # 마이크 입력시 보이스 재생
     user_input = speech.get_audio_input()
     if user_input is not None:
-        # text_to_speech(user_input)
         chatbot(user_input, True)
 
 if prompt := st.chat_input("Say something"):        # 채팅 입력시
